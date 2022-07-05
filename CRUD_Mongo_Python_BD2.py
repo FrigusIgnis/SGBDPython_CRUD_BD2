@@ -13,9 +13,8 @@ def matricular_aluno():
     nome = input("Insira o nome do aluno(a): ")
     cpf = input("Insira o CPF do aluno(a): ")
     matr = randint(10000,50000)
-    """checarMatr = collAlunos.database
-    while matr in checarMatr:
-        matr = randint(10000, 50000)"""
+    while matr in collAlunos.find():
+        matr = randint(10000, 50000)
     
     matricular = {"Nome":nome, "CPF":cpf, "Matricula":matr}
     collAlunos.insert_one(matricular)
