@@ -34,7 +34,10 @@ def procurarProduto(codProduto):
     for produto in collEstoque.find({"Codigo":codProduto}):
         queryProduto = produto
 
-    return queryProduto
+    if queryProduto != None:
+        return queryProduto
+    else:
+        print("Produto não encontrado! Tente novamente!")
 
 def gerarCodigo():
     cod = 1000
@@ -50,21 +53,35 @@ def gerarCodigo():
 
 #__________________________________________________________________________
 
+#Gerenciamento de caixa/funcionário
+
+def validarUsuario(usuario, senha):
+    queryUsuario = None
+    for usuario in collEstoque.find({usuario:senha}):
+        queryUsuario = usuario
+    
+    if(queryUsuario != None):
+        return queryUsuario
+    else:
+        print("Usuário e/ou senha incorretos! Tente novamente.")
+
+def retirarProduto(carrinhoCompras, id):
+    for produto in carrinhoCompras:
+        if(id == produto["Codigo"]):
+            atualizarEstoque(produto["Quantidade"], produto["Codigo"])
+            carrinhoCompras.remove(produto)
+    return carrinhoCompras
+
+
+#__________________________________________________________________________
+
 # Gerencimaneto de estoque
 
 def cadastrarProduto():
     nome = input("Nome do produto: ")
     preco = float(input("Preço: "))
     qtd = int(input("Quantidade: "))
-    cod = 1000
-    checarCodigo = None
-    while True:
-        for codigo in collEstoque.find({"Codigo":cod}):
-            checarCodigo = codigo
-        if checarCodigo["Codigo"] == cod:
-            cod += 1
-        else:
-            break
+    cod = GerarCodigo()
     
     cadastro = {"Nome":nome, "Preco":preco, "Quantidade":qtd, "Codigo":cod}
     collEstoque.insert_one(cadastro)
@@ -238,3 +255,12 @@ inserirProdutos = [
 ]
 
 collEstoque.insert_many(inserirProdutos)"""
+"""
+inserirFuncionarios = [
+    {"jks2145":"051220", "Nome":"Morgana Oliveira"},
+    {"nsa1205":"120520", "Nome":"Nicolas Silva de Araújo"},
+    {"jus2265":"200512", "Nome":"João Carlos Muniz"},
+    {"hki1234":"123456", "Nome":"Giovanna Lorezzi"}
+]
+
+collFuncionarios.insert_many(inserirFuncionarios)"""
