@@ -1,4 +1,5 @@
 import pymongo
+import string, random
 from random import randint
 
 
@@ -9,9 +10,121 @@ myDB = client["myDatabase"]
 
 collEstoque = myDB["Estoque"]
 collFuncionarios = myDB["Funcionarios"]
+collRelatorios = myDB["Relatorios"]
 
-# Funções genéricas para CRUD de logística
+# Gerimento de relatórios
 
+def gerarRelatorio():
+    nome = "teste"
+    save = open(nome,'w')
+    aluno =[]
+    for x in aluno:
+        save.write("%s\n" % (x))
+    collRelatorios.insert_one(save)
+    save.close()
+
+# __________________________________________________________________________
+# Gerenciamento de usuário/funcionário
+
+def procurarFunc(codFunc):
+    queryFunc = None
+    for funcionario in collFuncionarios.find({"CodFunc": codFunc}):
+        queryFunc = funcionario
+
+    if queryFunc != None:
+        return queryFunc
+    else:
+        print("Funcionário não encontrado! Tente novamente!")
+
+def validarUsuario(usuario, senha):
+    queryUsuario = None
+    for usuario in collFuncionarios.find({usuario:senha}):
+        queryUsuario = usuario
+
+    if(queryUsuario != None):
+        return queryUsuario
+    else:
+        print("Usuário e/ou senha incorretos! Tente novamente.")
+
+def cadastrarFuncionario(nome, cpf, codFunc, isAdmin):
+    cadastroFunc = {"Nome":nome, "CPF":cpf, "CodFunc":codFunc, codFunc:random.randint(100000, 999999), "Admin?":isAdmin}
+    collFuncionarios.insert_one(cadastroFunc)
+    print(f'Funcionário adicionado com sucesso!\nNome: {nome}\n{("Usuário: "+ codFunc)}\n{("Senha: %d" % cadastroFunc[codFunc])}\n')
+
+def consultarFuncionario():
+    busca = input("Campo de busca: ")
+    totalFuncBusca = 0
+    listaResultado = []
+    for funcionario in collFuncionarios.find({"Nome": {"$regex": "^%s" % busca}}):
+        listaResultado.append(funcionario)
+        totalFuncBusca += 1
+    if(len(listaResultado) == 0):
+        print("Nenhum funcionário foi encontrado com este nome.")
+    else:
+        print("\nOs dados de %d funcionários foram carregados.\n" % totalFuncBusca)
+
+        print(f'{"NOME":^50}||{"CÓDIGO":^15}||')
+        print(f'{"":^50}||{"":^15}||')
+        for item in listaResultado:
+            print(f'{item["Nome"]:^50}||{item["CodFunc"]:^15}||')
+
+def listarFuncionario():
+    totalFuncionarios = 0
+    for funcionario in collFuncionarios.find().sort("Nome"):
+        print("\nNome: %s\nCódigo de funcionário: %s" % (funcionario["Nome"], funcionario["CodFunc"]))
+        print("__________________________________________________")
+        totalFuncionarios += 1
+    print("Os dados de %d funcionários foram carregados.\n" % totalFuncionarios)
+
+def excluirFuncionario():
+    cod = input("Código de funcionário: ")
+    queryFunc = procurarFunc(cod)
+
+    if queryFunc != None:
+        collFuncionarios.delete_one(queryFunc)
+        print("Funcionário excluído do sistema com sucesso.")
+
+def atualizarDadosFuncionario():
+    cod = input("Código de funcionário: ")
+    funcionario = procurarFunc(cod)
+    dadosParaAtt = int(
+        input("Selecione a opção a ser atualizada:\n1. Nome\n2. Senha\n\nCOMANDO: "))
+    if dadosParaAtt == 1:
+        nomeFunc = input("Nome: ")
+        updateDados = {"$set": {"Nome": nomeFunc}}
+        collFuncionarios.update_one({"Nome": funcionario["Nome"]}, updateDados)
+    elif dadosParaAtt == 2:
+        print("Gerando nova senha...\n")
+        novaSenha = random.randint(100000, 999999)
+        updateDados = {"$set": {cod:novaSenha}}
+        collFuncionarios.update_one({cod:funcionario[cod]}, updateDados)
+        print("\nNova senha para o usuário %s: %d\n" % (cod,novaSenha))
+
+def gerarCodigoFuncionario():
+    cod = ""
+    countLetras = 0
+    countNumero = 0
+    checarCodigo = None
+
+    while True:
+        while countLetras < 3:
+            cod += random.choice(string.ascii_lowercase)
+            countLetras += 1
+        while countNumero < 4:
+            cod += str(random.randint(0, 9))
+            countNumero += 1
+        for codigo in collFuncionarios.find({"CodFunc": cod}):
+            checarCodigo = codigo
+        if checarCodigo != None:
+            cod = ""
+        else:
+            break
+    
+    return cod
+        
+# __________________________________________________________________________
+
+# Gerencimaneto de estoque
 
 def atualizarEstoque(qtd, codigo):
     produto = None
@@ -23,8 +136,6 @@ def atualizarEstoque(qtd, codigo):
     print("Estoque do produto Nº %d atualizado com sucesso." %
           produto["Codigo"])
 
-#def 
-
 def procurarProduto(codProduto):
     queryProduto = None
     for produto in collEstoque.find({"Codigo": codProduto}):
@@ -35,7 +146,7 @@ def procurarProduto(codProduto):
     else:
         print("Produto não encontrado! Tente novamente!")
 
-def gerarCodigo():
+def gerarCodigoProduto():
     cod = 1000
     checarCodigo = None
     while True:
@@ -47,51 +158,9 @@ def gerarCodigo():
             break
     return cod
 
-# __________________________________________________________________________
-# Gerenciamento de usuário/funcionário
-
-def validarUsuario(usuario, senha):
-    queryUsuario = None
-    for usuario in collFuncionarios.find({usuario: senha}):
-        queryUsuario = usuario
-
-    if(queryUsuario != None):
-        return queryUsuario
-    else:
-        print("Usuário e/ou senha incorretos! Tente novamente.")
-
-# __________________________________________________________________________
-
-# Gerenciamento de caixa
-
-def atualizarResumoCompra(resumoCompra, listaProdutos):
-    resumoCompra = ""
-    for item in listaProdutos:
-        resumoCompra += f'\n{item["Nome"]:<25}{item["Codigo"]:>11}\n{item["Quantidade"]} x {item["Preco"]:<6} = {(item["Quantidade"] * item["Preco"]):>24.2f}\n'
-        resumoCompra += "__________________________________________________"
-    return resumoCompra
-
-def atualizarValorTotal(valorTotal, listaProdutos):
-    valorTotal = 0.0
-    for item in listaProdutos:
-        valorTotal += item["Preco"] * item["Quantidade"]
-    return valorTotal
-
-def retirarProduto(carrinhoCompras, id):
-    for produto in carrinhoCompras:
-        if(id == produto["Codigo"]):
-            carrinhoCompras.remove(produto)
-            print("Produto removido com sucesso!\n")
-    return carrinhoCompras
-    
-
-# __________________________________________________________________________
-
-# Gerencimaneto de estoque
-
 def cadastrarProduto(nome, preco, qtd, cod):
-    cadastro = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod}
-    collEstoque.insert_one(cadastro)
+    cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod}
+    collEstoque.insert_one(cadastroProduto)
     print("\nUm novo produto foi adicionado com sucesso!\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\n\n" % (
         nome, preco, qtd, cod))
 
@@ -128,8 +197,6 @@ def excluirProduto():
     if queryProduto != None:
         collEstoque.delete_one(queryProduto)
         print("Produto excluído do sistema com sucesso.")
-    else:
-        print("Produto não encontrado.")
 
 def atualizarDadosProduto():
     cod = int(input("Código do produto: "))
@@ -159,6 +226,30 @@ def atualizarDadosProduto():
         print("Comando não reconhecido. Tente novamente.")
 
 # ____________________________________________________________________________
+
+# Gerenciamento de caixa
+
+def atualizarResumoCompra(resumoCompra, listaProdutos):
+    resumoCompra = ""
+    for item in listaProdutos:
+        resumoCompra += f'\n{item["Nome"]:<25}{item["Codigo"]:>11}\n{item["Quantidade"]} x {item["Preco"]:<6} = {(item["Quantidade"] * item["Preco"]):>24.2f}\n'
+        resumoCompra += "__________________________________________________"
+    return resumoCompra
+
+def atualizarValorTotal(valorTotal, listaProdutos):
+    valorTotal = 0.0
+    for item in listaProdutos:
+        valorTotal += item["Preco"] * item["Quantidade"]
+    return valorTotal
+
+def retirarProduto(carrinhoCompras, id):
+    for produto in carrinhoCompras:
+        if(id == produto["Codigo"]):
+            carrinhoCompras.remove(produto)
+            print("Produto removido com sucesso!\n")
+    return carrinhoCompras
+
+# __________________________________________________________________________
 
 #Interfaces do sistema
 
@@ -237,7 +328,7 @@ def logisticaMenu():
         3. Listar estoque
         4. Excluir produto
         5. Atualizar estoque
-        6. Sair"""))
+        6. Voltar ao menu anterior"""))
 
         if logistica == 1:
             nome = input("Nome do produto: ")
@@ -262,6 +353,71 @@ def logisticaMenu():
             print("\nRetornando ao menu anterior...\n")
             break
 
+def funcionariosMenu():
+    while True:
+        funcionarios = int(input("""GERÊNCIA HortiLife
+        1. Cadastrar novo funcionário
+        2. Pesquisar funcionário
+        3. Alterar dados de funcionário
+        4. Excluir funcionário
+        5. Voltar ao menu anterior
+        
+        COMANDO: """))
+
+        if funcionarios == 1:
+            nome = input("Nome: ")
+            cpf = input("CPF: ")
+            codFunc = gerarCodigoFuncionario()
+
+            cadastrarFuncionario(nome, cpf, codFunc)
+
+        if funcionarios == 2:
+            consultarFuncionario()
+
+        if funcionarios == 3:
+            listarFuncionario()
+
+        if funcionarios == 4:
+            excluirFuncionario()
+
+        if funcionarios == 5:
+            atualizarDadosFuncionario()
+
+        if funcionarios == 6:
+            print("\nRetornando ao menu anterior...\n")
+            break
+
+def adminMenu():
+    while True:
+        admin = int(input("""ADMINISTRAÇÃO HortiLife
+    
+        1. Gerenciar funcionários
+        2. Gerenciar logística
+        3. Gerenciar caixa
+        4. Carregar relatórios
+        5. Sair
+    
+        COMANDO: """))
+
+        if admin == 1:
+            funcionariosMenu()
+
+        elif admin == 2:
+            logisticaMenu()
+
+        elif admin == 3:
+            caixaMenu()
+        
+        elif admin == 4:
+            carregarRelatorio()
+
+        elif admin == 5:
+            print("Usuário sendo deslogado... Tenha um bom dia!")
+            break
+
+        else:
+            print("Comando inválido! Tente novamente!")
+
 def sistemaMenu():
     while True:
         menu = int(input("""SISTEMA MONGO
@@ -274,7 +430,7 @@ def sistemaMenu():
             caixaMenu()
 
         elif menu == 2:
-            #logisticaMenu()
+            logisticaMenu()
             print()
         elif menu == 3:
             #gerarRelatorio()
@@ -287,46 +443,48 @@ def sistemaMenu():
 
 # Executável
 
-sistemaMenu()
+#gerarRelatorio()
 """
 while True:
     print("Bem vindo! Digite seu login e senha para continuar\n")
     login = input("Login: ")
-    senha = input("Senha: ")
+    senha = int(input("Senha: "))
 
     checkUsuario = validarUsuario(login, senha)
-    if checkUsuario != None:
+    if checkUsuario != None and checkUsuario["Admin?"] != True:
         sistemaMenu()
+    elif checkUsuario != None and checkUsuario["Admin?"] == True:
+        adminMenu()
     else:
         break
+"""
 
 """
-"""
 inserirProdutos = [
-{"Nome":"Banana prata", "Preco":3.09, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Morango", "Preco":19.99, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Maçã verde", "Preco":14.99, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Maçã vermelha", "Preco":5.99, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Uva verde", "Preco":10.99, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Uva roxa", "Preco":6.89, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Melão verde", "Preco":4.99, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Melância vermelha", "Preco":4.59, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Melância amarela", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Kiwi", "Preco":19.89, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Mamão Papaya", "Preco":6.49, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Quiabo", "Preco":5.69, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Coentro", "Preco":4.89, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Salsa", "Preco":3.39, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Abóbora", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Tomate", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Cebola", "Preco":2.49, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Alho", "Preco":17.19, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Couve", "Preco":6.99, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Couve-flor", "Preco":5.19, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Beterraba", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Cogumelo shitake", "Preco":48.59, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Cogumelo champignon", "Preco":46.09, "Quantidade": 200, "Codigo":gerarCodigo()},
-{"Nome":"Cogumelo shimeji", "Preco":13.89, "Quantidade": 200, "Codigo":gerarCodigo()}
+{"Nome":"Banana prata", "Preco":3.09, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Morango", "Preco":19.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Maçã verde", "Preco":14.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Maçã vermelha", "Preco":5.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Uva verde", "Preco":10.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Uva roxa", "Preco":6.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Melão verde", "Preco":4.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Melância vermelha", "Preco":4.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Melância amarela", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Kiwi", "Preco":19.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Mamão Papaya", "Preco":6.49, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Quiabo", "Preco":5.69, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Coentro", "Preco":4.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Salsa", "Preco":3.39, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Abóbora", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Tomate", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cebola", "Preco":2.49, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Alho", "Preco":17.19, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Couve", "Preco":6.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Couve-flor", "Preco":5.19, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Beterraba", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cogumelo shitake", "Preco":48.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cogumelo champignon", "Preco":46.09, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cogumelo shimeji", "Preco":13.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()}
 ]
 
 collEstoque.insert_many(inserirProdutos)"""
