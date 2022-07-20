@@ -48,8 +48,7 @@ def gerarCodigo():
     return cod
 
 # __________________________________________________________________________
-
-# Gerenciamento de caixa/funcionário
+# Gerenciamento de usuário/funcionário
 
 def validarUsuario(usuario, senha):
     queryUsuario = None
@@ -60,6 +59,10 @@ def validarUsuario(usuario, senha):
         return queryUsuario
     else:
         print("Usuário e/ou senha incorretos! Tente novamente.")
+
+# __________________________________________________________________________
+
+# Gerenciamento de caixa
 
 def atualizarResumoCompra(resumoCompra, listaProdutos):
     resumoCompra = ""
@@ -81,7 +84,7 @@ def retirarProduto(carrinhoCompras, id):
             carrinhoCompras.remove(produto)
             print("Produto removido com sucesso!\n")
     return carrinhoCompras
-
+    
 
 # __________________________________________________________________________
 
@@ -246,12 +249,16 @@ def logisticaMenu():
 
         if logistica == 2:
             consultarProduto()
+
         if logistica == 3:
             listarProdutos()
+
         if logistica == 4:
             excluirProduto()
+
         if logistica == 5:
             atualizarDadosProduto()
+            
         if logistica == 6:
             print("\nRetornando ao menu anterior...\n")
             break
