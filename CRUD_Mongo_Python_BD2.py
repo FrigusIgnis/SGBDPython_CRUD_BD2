@@ -67,8 +67,7 @@ def validarUsuario(usuario, senha):
 def atualizarResumoCompra(resumoCompra, listaProdutos):
     resumoCompra = ""
     for item in listaProdutos:
-        resumoCompra += "\n%s     Código: %s\n%d x %.2f = %.2f\n" % (
-                        item["Nome"], item["Codigo"], item["Quantidade"], item["Preco"], (item["Quantidade"] * item["Preco"]))
+        resumoCompra += f'\n{item["Nome"]:<25}{item["Codigo"]:>11}\n{item["Quantidade"]} x {item["Preco"]:<6} = {(item["Quantidade"] * item["Preco"]):>24.2f}\n'
         resumoCompra += "__________________________________________________"
     return resumoCompra
 
@@ -171,7 +170,7 @@ def caixaMenu():
     while True:
         resumoCompra = atualizarResumoCompra(resumoCompra, listaProdutos)
         valorTotal = atualizarValorTotal(valorTotal, listaProdutos)
-        caixaOp = int(input("""CAIXA MongoDB\n\nCarrinho de compras atual\n%s
+        caixaOp = int(input("""CAIXA HortiLife\n\nCarrinho de compras atual\n%s
         \n
         Valor Total: %.2f
         \n
@@ -232,7 +231,7 @@ def caixaMenu():
 
 def logisticaMenu():
     while True:
-        logistica = int(input("""LOGÍSTICA MongoDB\n\n
+        logistica = int(input("""LOGÍSTICA HortiLife\n\n
         1. Cadastrar produto
         2. Pesquisar produto
         3. Listar estoque
@@ -258,7 +257,7 @@ def logisticaMenu():
 
         if logistica == 5:
             atualizarDadosProduto()
-            
+
         if logistica == 6:
             print("\nRetornando ao menu anterior...\n")
             break
@@ -288,7 +287,7 @@ def sistemaMenu():
 
 # Executável
 
-consultarProduto()
+sistemaMenu()
 """
 while True:
     print("Bem vindo! Digite seu login e senha para continuar\n")
