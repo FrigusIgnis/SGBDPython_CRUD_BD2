@@ -1,6 +1,8 @@
 import pymongo
 import string, random
 from random import randint
+from datetime import date
+from datetime import datetime
 
 
 client = pymongo.MongoClient(
@@ -14,14 +16,20 @@ collRelatorios = myDB["Relatorios"]
 
 # Gerimento de relatórios
 
-def gerarRelatorio():
-    nome = "teste"
-    save = open(nome,'w')
-    aluno =[]
-    for x in aluno:
-        save.write("%s\n" % (x))
-    collRelatorios.insert_one(save)
-    save.close()
+def gerarRelatorio(arq1, arq2):
+    caixa = open(arq1,'r')
+    logistica = open(arq2, 'r')
+    relatorio = ""
+
+    relatorio += "OPERAÇÕES DE CAIXA\n"
+    for linha in caixa.readlines():
+        relatorio += linha
+
+    relatorio += "OPERAÇÕES DE LOGÍSTICA\n"
+    for linha in logistica.readlines():
+        relatorio += linha
+
+    return relatorio
 
 # __________________________________________________________________________
 # Gerenciamento de usuário/funcionário
@@ -259,6 +267,7 @@ def caixaMenu():
     resumoCompra = ""
 
     while True:
+        caixaRelatorio = open("Caixa.txt",'a')
         resumoCompra = atualizarResumoCompra(resumoCompra, listaProdutos)
         valorTotal = atualizarValorTotal(valorTotal, listaProdutos)
         caixaOp = int(input("""CAIXA HortiLife\n\nCarrinho de compras atual\n%s
@@ -269,7 +278,7 @@ def caixaMenu():
         1. Adicionar itens
         2. Retirar item
         3. Fechar compra
-        4. Cancelar operação
+        4. Sair
         
         COMANDO: """ % (resumoCompra, valorTotal)))
 
@@ -278,11 +287,18 @@ def caixaMenu():
                 itemCompra = {"Nome": "", "Quantidade": 0, "Preco": 0.0, "Codigo": 0}
                 item = input("Insira o código e a quantidade: ").split(" ")
                 if item[0] != "0":
+                    check = False
                     itemDados = procurarProduto(int(item[0]))
                     if itemDados != None:
                         itemCompra = {"Nome": itemDados["Nome"], "Quantidade": int(
                             item[1]), "Preco": itemDados["Preco"], "Codigo": itemDados["Codigo"]}
-                        listaProdutos.append(itemCompra)
+                        for produtoCheck in listaProdutos:
+                            if itemCompra["Codigo"] == produtoCheck["Codigo"]:
+                                listaProdutos[listaProdutos.index(produtoCheck)]["Quantidade"] += itemCompra["Quantidade"]
+                                check = True
+                                break
+                        if check == False:
+                            listaProdutos.append(itemCompra)
                     else:
                         print("Código inválido! Tente novamente\n")
                 else:
@@ -299,10 +315,18 @@ def caixaMenu():
                 input("\n\n1. Confirmar operação\n2. Abortar operação\n\nCOMANDO: "))
             while True:
                 if confirmacao == 1:
+                    caixaRelatorio.write(date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+                    openRelat = open("Caixa.txt",'r').readlines()
                     print("\nCompra efetuada com sucesso! Retornando ao menu anterior...\n")
+                    for item in listaProdutos:
+                        caixaRelatorio.write("Código do item: %s || Quantidade vendida: %s\n" % (str(item["Codigo"]), str(item["Quantidade"])))
+
+                    caixaRelatorio.write("\n")
                     resumoCompra = ""
+
                     valorTotal = 0.0
                     listaProdutos = []
+                    caixaRelatorio.close()
                     break
                 if confirmacao == 2:
                     for item in listaProdutos:
@@ -321,7 +345,9 @@ def caixaMenu():
             break
 
 def logisticaMenu():
+    acoesLogistica = []
     while True:
+        logisticaRelatorio = open("Logistica.txt",'a') #Parada
         logistica = int(input("""LOGÍSTICA HortiLife\n\n
         1. Cadastrar produto
         2. Pesquisar produto
@@ -367,9 +393,21 @@ def funcionariosMenu():
         if funcionarios == 1:
             nome = input("Nome: ")
             cpf = input("CPF: ")
+            isAdmin = False
+            while True:
+                isAdminInput = int(input("Administrador?\n1. Sim\n2. Não"))
+                if isAdminInput == 1:
+                    isAdmin = True
+                    break
+                elif isAdminInput == 2:
+                    isAdmin = False
+                    break
+                else:
+                    print("Comando inválido! Tente novamente")
+
             codFunc = gerarCodigoFuncionario()
 
-            cadastrarFuncionario(nome, cpf, codFunc)
+            cadastrarFuncionario(nome, cpf, codFunc, isAdmin)
 
         if funcionarios == 2:
             consultarFuncionario()
@@ -387,7 +425,10 @@ def funcionariosMenu():
             print("\nRetornando ao menu anterior...\n")
             break
 
-def adminMenu():
+def adminMenu(nomeUsuario):
+    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S") +"\n\n"
+    relatorioArq = open(nomeRelatorio, 'w')
+    relatorioArq.write("Horário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
     while True:
         admin = int(input("""ADMINISTRAÇÃO HortiLife
     
@@ -412,15 +453,21 @@ def adminMenu():
             carregarRelatorio()
 
         elif admin == 5:
-            print("Usuário sendo deslogado... Tenha um bom dia!")
+            relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
+            relatorioArq.write("\n" + relatorioFinal + "\n")
+            relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+            relatorioArq.close()
             break
 
         else:
             print("Comando inválido! Tente novamente!")
 
-def sistemaMenu():
+def sistemaMenu(nomeUsuario):
+    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S") +"\n\n"
+    relatorioArq = open(nomeRelatorio, 'w')
+    relatorioArq.write("Horário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
     while True:
-        menu = int(input("""SISTEMA MONGO
+        menu = int(input("""SISTEMA HortiLife
         1. Operação de caixa
         2. Operação de logística
         3. Sair
@@ -433,7 +480,10 @@ def sistemaMenu():
             logisticaMenu()
             print()
         elif menu == 3:
-            #gerarRelatorio()
+            relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
+            relatorioArq.write("\n" + relatorioFinal + "\n")
+            relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+            relatorioArq.close()
             print("O relatório foi gerado com sucesso! Desativando sistema...")
             break
         else:
@@ -443,7 +493,6 @@ def sistemaMenu():
 
 # Executável
 
-#gerarRelatorio()
 """
 while True:
     print("Bem vindo! Digite seu login e senha para continuar\n")
@@ -452,9 +501,9 @@ while True:
 
     checkUsuario = validarUsuario(login, senha)
     if checkUsuario != None and checkUsuario["Admin?"] != True:
-        sistemaMenu()
+        sistemaMenu(checkUsuario["Nome"])
     elif checkUsuario != None and checkUsuario["Admin?"] == True:
-        adminMenu()
+        adminMenu(checkUsuario["Nome"])
     else:
         break
 """
@@ -488,12 +537,3 @@ inserirProdutos = [
 ]
 
 collEstoque.insert_many(inserirProdutos)"""
-"""
-inserirFuncionarios = [
-    {"jks2145":"051220", "Nome":"Morgana Oliveira"},
-    {"nsa1205":"120520", "Nome":"Nicolas Silva de Araújo"},
-    {"jus2265":"200512", "Nome":"João Carlos Muniz"},
-    {"hki1234":"123456", "Nome":"Giovanna Lorezzi"}
-]
-
-collFuncionarios.insert_many(inserirFuncionarios)"""
