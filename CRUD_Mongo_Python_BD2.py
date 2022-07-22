@@ -12,7 +12,7 @@ myDB = client["myDatabase"]
 
 collEstoque = myDB["Estoque"]
 collFuncionarios = myDB["Funcionarios"]
-collRelatorios = myDB["Relatorios"]
+collPatrocinadores = myDB["Patrocinadores"]
 
 # Gerimento de relatórios
 
@@ -158,6 +158,7 @@ def gerarCodigoProduto():
     cod = 1000
     checarCodigo = None
     while True:
+
         for codigo in collEstoque.find({"Codigo": cod}):
             checarCodigo = codigo
         if checarCodigo["Codigo"] == cod:
@@ -166,11 +167,36 @@ def gerarCodigoProduto():
             break
     return cod
 
-def cadastrarProduto(nome, preco, qtd, cod):
-    cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod}
+def attPatrocinadorAdd(produto):
+    for patrocinador in collPatrocinadores.find():
+        if marca in patrocinador["Marca"]:
+            produtosRegistrados = patrocinador["Produtos"]
+            produtosRegistrados.append(nome)
+            updateProdutosPatro = {"$set":{"Produtos":produtosRegistrados}}
+            collPatrocinadores.update_one({"Marca":marca}, updateProdutosPatro)
+
+def attPatrocinadorRem(produto):
+    for patrocinador in collPatrocinadores.find():
+        if produto["Marca"] in patrocinador["Marca"] and produto["Nome"] in patrocinador["Produtos"]:
+            produtosRegistrados = patrocinador["Produtos"]
+            produtosRegistrados.remove(produto["Nome"])
+            updateProdutosPatro = {"$set":{"Produtos":produtosRegistrados}}
+            collPatrocinadores.update_one({"Marca":produto["Marca"]}, updateProdutosPatro)
+
+def cadastrarProduto(nome, preco, qtd, cod, marca):
+    cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod, "Marca": marca}
     collEstoque.insert_one(cadastroProduto)
-    print("\nUm novo produto foi adicionado com sucesso!\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\n\n" % (
-        nome, preco, qtd, cod))
+    print("\nUm novo produto foi adicionado com sucesso!\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: %s\n\n" % (
+        nome, preco, qtd, cod, marca))
+    checkMarca = False
+    for patrocinador in collPatrocinadores.find():
+        if marca in patrocinador["Marca"]:
+            attPatrocinadorAdd(nome)
+            checkMarca = True
+
+    if checkMarca == False:
+        cadastroPatrocinador = {"Marca":marca, "Produtos":[nome]}
+        collPatrocinadores.insert_one(cadastroPatrocinador)
 
 def consultarProduto():
     busca = input("Campo de busca: ")
@@ -184,16 +210,28 @@ def consultarProduto():
     else:
         print("\nOs dados de %d produtos foram carregados.\n" % totalProdutosBusca)
 
-        print(f'{"PRODUTO":^25}||{"CÓDIGO":^10}||{"QUANTIDADE":^12}||{"PREÇO":^10}')
-        print(f'{"":^25}||{"":^10}||{"":^12}||{"":^10}')
+        print(f'{"PRODUTO":^25}||{"CÓDIGO":^10}||{"QUANTIDADE":^12}||{"PREÇO/KG":^12}||{"MARCA":^15}')
+        print(f'{"":^25}||{"":^10}||{"":^12}||{"":^12}||{"":^15}')
         for item in listaResultado:
-            print(f'{item["Nome"]:^25}||{item["Codigo"]:^10}||{item["Quantidade"]:^12}||{item["Preco"]:^10}')
+            print(f'{item["Nome"]:^25}||{item["Codigo"]:^10}||{item["Quantidade"]:^12}||{item["Preco"]:^12}||{item["Marca"]:^15}')
+        print("\n")
 
-def listarProdutos():
+def listarProdutos(): #Add Join
     totalProdutos = 0
+
+    joinPatrocinadores = collEstoque.aggregate([
+            {
+                '$lookup': {
+                    'from': "Patrocinadores",
+                    'localField': "Marca",
+                    'foreignField': "Marca",
+                    'as': 'ProdutoPatrocinador'
+                }
+            }
+        ])
+
     for produto in collEstoque.find().sort("Codigo"):
-        print("\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d" % (produto["Nome"], produto["Preco"], 
-         produto["Quantidade"], produto["Codigo"]))
+        print("\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: " % (produto["Nome"], produto["Preco"], produto["Quantidade"], produto["Codigo"], produto["Marca"]))
         print("__________________________________________________")
         totalProdutos += 1
     print("Os dados de %d produtos foram carregados.\n" % totalProdutos)
@@ -201,10 +239,14 @@ def listarProdutos():
 def excluirProduto():
     cod = int(input("Código do produto: "))
     queryProduto = procurarProduto(cod)
+    relatProduto = queryProduto
 
     if queryProduto != None:
+        attPatrocinadorRem(queryProduto)
         collEstoque.delete_one(queryProduto)
         print("Produto excluído do sistema com sucesso.")
+
+    return relatProduto
 
 def atualizarDadosProduto():
     cod = int(input("Código do produto: "))
@@ -225,6 +267,7 @@ def atualizarDadosProduto():
         qtdProduto = int(input("Quantidade: "))
         if opcaoQtd == 1:
             atualizarEstoque(qtdProduto, produto["Codigo"])
+
         elif opcaoQtd == 2:
             atualizarEstoque((qtdProduto*-1), produto["Codigo"])
         else:
@@ -240,7 +283,7 @@ def atualizarDadosProduto():
 def atualizarResumoCompra(resumoCompra, listaProdutos):
     resumoCompra = ""
     for item in listaProdutos:
-        resumoCompra += f'\n{item["Nome"]:<25}{item["Codigo"]:>11}\n{item["Quantidade"]} x {item["Preco"]:<6} = {(item["Quantidade"] * item["Preco"]):>24.2f}\n'
+        resumoCompra += f'\n{(item["Nome"] + " " + item["Marca"]):<25}{item["Codigo"]:>11}\n{item["Quantidade"]} x {item["Preco"]:<6} = {(item["Quantidade"] * item["Preco"]):>24.2f}\n'
         resumoCompra += "__________________________________________________"
     return resumoCompra
 
@@ -291,7 +334,7 @@ def caixaMenu():
                     itemDados = procurarProduto(int(item[0]))
                     if itemDados != None:
                         itemCompra = {"Nome": itemDados["Nome"], "Quantidade": int(
-                            item[1]), "Preco": itemDados["Preco"], "Codigo": itemDados["Codigo"]}
+                            item[1]), "Preco": itemDados["Preco"], "Codigo": itemDados["Codigo"], "Marca":itemDados["Marca"]}
                         for produtoCheck in listaProdutos:
                             if itemCompra["Codigo"] == produtoCheck["Codigo"]:
                                 listaProdutos[listaProdutos.index(produtoCheck)]["Quantidade"] += itemCompra["Quantidade"]
@@ -322,8 +365,8 @@ def caixaMenu():
                         caixaRelatorio.write("Código do item: %s || Quantidade vendida: %s\n" % (str(item["Codigo"]), str(item["Quantidade"])))
 
                     caixaRelatorio.write("\n")
-                    resumoCompra = ""
 
+                    resumoCompra = ""
                     valorTotal = 0.0
                     listaProdutos = []
                     caixaRelatorio.close()
@@ -345,23 +388,31 @@ def caixaMenu():
             break
 
 def logisticaMenu():
-    acoesLogistica = []
+    acoesLogistica = {"Cadastro":{}, "Exclusao":{}, "Reabastecimento":{}, "Retirada":{}}
     while True:
-        logisticaRelatorio = open("Logistica.txt",'a') #Parada
+        logisticaRelatorio = open("Logistica.txt",'a')
         logistica = int(input("""LOGÍSTICA HortiLife\n\n
         1. Cadastrar produto
         2. Pesquisar produto
         3. Listar estoque
         4. Excluir produto
         5. Atualizar estoque
-        6. Voltar ao menu anterior"""))
+        6. Voltar ao menu anterior
+        
+        COMANDO: """))
 
         if logistica == 1:
             nome = input("Nome do produto: ")
             preco = float(input("Preço: "))
             qtd = int(input("Quantidade: "))
-            cod = GerarCodigo()
-            cadastrarProduto(nome, preco, qtd, cod)
+            cod = gerarCodigoProduto()
+            marca = input("Marca: ")
+            cadastrarProduto(nome, preco, qtd, cod, marca)
+
+            if marca in acoesLogistica["Cadastro"].keys():
+                acoesLogistica["Cadastro"][marca].append(nome)
+            else:
+                acoesLogistica["Cadastro"][marca] = [nome]
 
         if logistica == 2:
             consultarProduto()
@@ -370,7 +421,12 @@ def logisticaMenu():
             listarProdutos()
 
         if logistica == 4:
-            excluirProduto()
+            produtoRelat = excluirProduto()
+            if produtoRelat["Marca"] in acoesLogistica["Exclusao"].keys():
+                acoesLogistica["Exclusao"][produtoRelat["Marca"]].append(produtoRelat["Nome"])
+            else:
+                acoesLogistica["Exclusao"][produtoRelat["Marca"]] = [produtoRelat["Nome"]]
+            print(acoesLogistica)
 
         if logistica == 5:
             atualizarDadosProduto()
@@ -426,9 +482,9 @@ def funcionariosMenu():
             break
 
 def adminMenu(nomeUsuario):
-    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S") +"\n\n"
+    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S")
     relatorioArq = open(nomeRelatorio, 'w')
-    relatorioArq.write("Horário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+    relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
     while True:
         admin = int(input("""ADMINISTRAÇÃO HortiLife
     
@@ -463,9 +519,9 @@ def adminMenu(nomeUsuario):
             print("Comando inválido! Tente novamente!")
 
 def sistemaMenu(nomeUsuario):
-    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S") +"\n\n"
-    relatorioArq = open(nomeRelatorio, 'w')
-    relatorioArq.write("Horário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+    #nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S")
+    #relatorioArq = open(nomeRelatorio, 'w')
+    #relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
     while True:
         menu = int(input("""SISTEMA HortiLife
         1. Operação de caixa
@@ -478,21 +534,22 @@ def sistemaMenu(nomeUsuario):
 
         elif menu == 2:
             logisticaMenu()
-            print()
+
         elif menu == 3:
-            relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
-            relatorioArq.write("\n" + relatorioFinal + "\n")
-            relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
-            relatorioArq.close()
+            #relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
+            #relatorioArq.write("\n" + relatorioFinal + "\n")
+            #relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+            #relatorioArq.close()
             print("O relatório foi gerado com sucesso! Desativando sistema...")
             break
+
         else:
             print("Comando inválido! Tente novamente!")
 
 # ____________________________________________________________________________
 
 # Executável
-
+caixaMenu()
 """
 while True:
     print("Bem vindo! Digite seu login e senha para continuar\n")
@@ -506,6 +563,74 @@ while True:
         adminMenu(checkUsuario["Nome"])
     else:
         break
+"""
+
+"""
+teste = collEstoque.aggregate([
+    {
+        '$lookup': {
+            'from': "Patrocinadores",
+            'localField': "Marca",
+            'foreignField': "Marca",
+            'as': 'ProdutoPatrocinador'
+        }
+    }
+])
+
+for item in teste:
+    print(item)
+
+"""
+"""
+cadastrarProduto("Banana Prata", 3.09, 200, 1000, "Filomena")
+cadastrarProduto("Banana Prata", 2.99, 150, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Banana Prata", 3.04, 175, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Morango", 19.99, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Morango", 20.09, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Maçã verde", 14.99, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Maçã verde", 14.79, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Maçã vermelha", 5.99, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Maçã vermelha", 5.79, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Uva verde", 10.99, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Uva verde", 10.99, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Uva verde", 10.96, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Uva verde", 10.94, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Uva verde", 10.89, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Uva roxa", 6.89, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Uva roxa", 6.89, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Melão verde", 4.99, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Melão verde", 4.99, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Melão verde", 4.89, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Melância vermelha", 4.59, 150, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Melância vermelha", 4.79, 150, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Melância amarela", 3.59, 150, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Melância amarela", 3.69, 150, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Kiwi", 19.89, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Kiwi", 19.79, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Mamão Papaya", 6.49, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Mamão Papaya", 6.49, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Quiabo", 5.69, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Coentro", 4.89, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Salsa", 3.39, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Salsa", 3.39, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Abóbora", 2.29, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Abóbora", 2.19, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Tomate", 3.59, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Tomate", 3.59, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Cebola", 2.49, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Cebola", 2.49, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Alho", 17.19, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Alho", 17.19, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Couve", 6.99, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Beterraba", 2.29, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Cogumelo shitake", 48.59, 100, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Cogumelo champignon", 46.09, 100, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Cogumento shimeji", 13.89, 200, gerarCodigoProduto(), "AgroFruti")
 """
 
 """
