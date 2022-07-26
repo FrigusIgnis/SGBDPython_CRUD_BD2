@@ -5,8 +5,7 @@ from datetime import date
 from datetime import datetime
 
 
-client = pymongo.MongoClient(
-    "mongodb+srv://NicolasSilva:nsda1205@sgdbpython-crud-nsda-bd.p1kei.mongodb.net/?retryWrites=true&w=majority")
+client = pymongo.MongoClient("mongodb+srv://NicolasSilva:nsda1205@sgdbpython-crud-nsda-bd.p1kei.mongodb.net/?retryWrites=true&w=majority")
 
 myDB = client["myDatabase"]
 
@@ -21,11 +20,13 @@ def gerarRelatorio(arq1, arq2):
     logistica = open(arq2, 'r')
     relatorio = ""
 
-    relatorio += "OPERAÇÕES DE CAIXA\n"
+    relatorio += "--- OPERAÇÕES DE CAIXA\n"
     for linha in caixa.readlines():
         relatorio += linha
 
-    relatorio += "OPERAÇÕES DE LOGÍSTICA\n"
+    relatorio += "\n"
+
+    relatorio += "--- OPERAÇÕES DE LOGÍSTICA\n"
     for linha in logistica.readlines():
         relatorio += linha
 
@@ -169,19 +170,21 @@ def gerarCodigoProduto():
 
 def attPatrocinadorAdd(produto):
     for patrocinador in collPatrocinadores.find():
-        if marca in patrocinador["Marca"]:
+        if produto["Marca"] == patrocinador["Marca"]:
             produtosRegistrados = patrocinador["Produtos"]
-            produtosRegistrados.append(nome)
+            produtosRegistrados.append(produto["Nome"])
             updateProdutosPatro = {"$set":{"Produtos":produtosRegistrados}}
-            collPatrocinadores.update_one({"Marca":marca}, updateProdutosPatro)
+            collPatrocinadores.update_one({"Marca":produto["Marca"]}, updateProdutosPatro)
+            break
 
 def attPatrocinadorRem(produto):
     for patrocinador in collPatrocinadores.find():
-        if produto["Marca"] in patrocinador["Marca"] and produto["Nome"] in patrocinador["Produtos"]:
+        if produto["Marca"] == patrocinador["Marca"] and produto["Nome"] in patrocinador["Produtos"]:
             produtosRegistrados = patrocinador["Produtos"]
             produtosRegistrados.remove(produto["Nome"])
             updateProdutosPatro = {"$set":{"Produtos":produtosRegistrados}}
             collPatrocinadores.update_one({"Marca":produto["Marca"]}, updateProdutosPatro)
+            break
 
 def cadastrarProduto(nome, preco, qtd, cod, marca):
     cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod, "Marca": marca}
@@ -191,7 +194,7 @@ def cadastrarProduto(nome, preco, qtd, cod, marca):
     checkMarca = False
     for patrocinador in collPatrocinadores.find():
         if marca in patrocinador["Marca"]:
-            attPatrocinadorAdd(nome)
+            attPatrocinadorAdd(cadastroProduto)
             checkMarca = True
 
     if checkMarca == False:
@@ -230,9 +233,12 @@ def listarProdutos(): #Add Join
             }
         ])
 
-    for produto in collEstoque.find().sort("Codigo"):
+    for marca in collPatrocinadores.find().sort("Marca"):
+        estoqueMarca = []
+        #Ini
         print("\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: " % (produto["Nome"], produto["Preco"], produto["Quantidade"], produto["Codigo"], produto["Marca"]))
         print("__________________________________________________")
+        #Fim
         totalProdutos += 1
     print("Os dados de %d produtos foram carregados.\n" % totalProdutos)
 
@@ -249,6 +255,7 @@ def excluirProduto():
     return relatProduto
 
 def atualizarDadosProduto():
+    estoqueAtt = []
     cod = int(input("Código do produto: "))
     produto = procurarProduto(cod)
     dadosParaAtt = int(
@@ -267,9 +274,13 @@ def atualizarDadosProduto():
         qtdProduto = int(input("Quantidade: "))
         if opcaoQtd == 1:
             atualizarEstoque(qtdProduto, produto["Codigo"])
-
+            estoqueAtt = [cod, qtdProduto]
+            return estoqueAtt
         elif opcaoQtd == 2:
             atualizarEstoque((qtdProduto*-1), produto["Codigo"])
+            estoqueAtt = [cod,(qtdProduto*-1)]
+            print(estoqueAtt)
+            return estoqueAtt
         else:
             print("Comando não reconhecido.")
 
@@ -410,9 +421,9 @@ def logisticaMenu():
             cadastrarProduto(nome, preco, qtd, cod, marca)
 
             if marca in acoesLogistica["Cadastro"].keys():
-                acoesLogistica["Cadastro"][marca].append(nome)
+                acoesLogistica["Cadastro"][marca].append([nome, cod])
             else:
-                acoesLogistica["Cadastro"][marca] = [nome]
+                acoesLogistica["Cadastro"][marca] = [[nome, cod]]
 
         if logistica == 2:
             consultarProduto()
@@ -423,15 +434,54 @@ def logisticaMenu():
         if logistica == 4:
             produtoRelat = excluirProduto()
             if produtoRelat["Marca"] in acoesLogistica["Exclusao"].keys():
-                acoesLogistica["Exclusao"][produtoRelat["Marca"]].append(produtoRelat["Nome"])
+                acoesLogistica["Exclusao"][produtoRelat["Marca"]].append([produtoRelat["Nome"]])
             else:
                 acoesLogistica["Exclusao"][produtoRelat["Marca"]] = [produtoRelat["Nome"]]
             print(acoesLogistica)
 
         if logistica == 5:
-            atualizarDadosProduto()
-
+            estoqueLog = atualizarDadosProduto()
+            if len(estoqueLog) > 0:
+                if estoqueLog[1] < 0:
+                    if estoqueLog[0] in acoesLogistica["Retirada"].keys():
+                        acoesLogistica["Retirada"][estoqueLog[0]] += estoqueLog[1]
+                    else:
+                        acoesLogistica["Retirada"][estoqueLog[0]] = estoqueLog[1]
+                else:
+                    if estoqueLog[0] in acoesLogistica["Reabastecimento"].keys():
+                        acoesLogistica["Reabastecimento"][estoqueLog[0]] += estoqueLog[1]
+                    else:
+                        acoesLogistica["Reabastecimento"][estoqueLog[0]] = estoqueLog[1]
+        
         if logistica == 6:
+            logisticaRelatorio.write(date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+            for marca in acoesLogistica["Cadastro"].keys():
+                for produto in acoesLogistica["Cadastro"][marca]:
+                    logisticaRelatorio.write(f'Nome: {produto[0]:<30} || Código: {produto[1]:<12} || Marca: {marca:<25}\n')
+            
+            logisticaRelatorio.write("\n\n")
+
+            logisticaRelatorio.write("EXCLUSÃO - OPERAÇÕES\n")
+            for marca in acoesLogistica["Exclusao"].keys():
+                nomeProduto = str(acoesLogistica["Exclusao"][marca])
+                logisticaRelatorio.write(f'Nome: {nomeProduto:<30} || Marca: {marca:<12}\n')
+            
+            logisticaRelatorio.write("\n\n")
+
+            logisticaRelatorio.write("REABASTECIMENTO - OPERAÇÕES\n")
+            for cod in acoesLogistica["Reabastecimento"].keys():
+                qtdReabastecida = str(acoesLogistica["Reabastecimento"][cod])
+                logisticaRelatorio.write(f'Código do produto: {cod:<30}  || Quantidade: {qtdReabastecida:<12}\n')
+            
+            logisticaRelatorio.write("\n\n")
+
+            logisticaRelatorio.write("RETIRADA - OPERAÇÕES\n")
+            for cod in acoesLogistica["Retirada"].keys():
+                qtdRetirada = str(acoesLogistica["Retirada"][cod])
+                logisticaRelatorio.write(f'Código do produto: {cod:<30}  || Quantidade: {qtdRetirada:<12}\n')
+            
+            logisticaRelatorio.write("\n\n")
+
             print("\nRetornando ao menu anterior...\n")
             break
 
@@ -519,9 +569,9 @@ def adminMenu(nomeUsuario):
             print("Comando inválido! Tente novamente!")
 
 def sistemaMenu(nomeUsuario):
-    #nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S")
-    #relatorioArq = open(nomeRelatorio, 'w')
-    #relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
+    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d_%m_%Y") + "_" + datetime.now().strftime("%H.%M.%S")
+    relatorioArq = open(nomeRelatorio, 'a')
+    relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
     while True:
         menu = int(input("""SISTEMA HortiLife
         1. Operação de caixa
@@ -536,10 +586,10 @@ def sistemaMenu(nomeUsuario):
             logisticaMenu()
 
         elif menu == 3:
-            #relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
-            #relatorioArq.write("\n" + relatorioFinal + "\n")
-            #relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
-            #relatorioArq.close()
+            relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
+            relatorioArq.write(relatorioFinal)
+            relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n")
+            relatorioArq.close()
             print("O relatório foi gerado com sucesso! Desativando sistema...")
             break
 
@@ -549,8 +599,7 @@ def sistemaMenu(nomeUsuario):
 # ____________________________________________________________________________
 
 # Executável
-caixaMenu()
-"""
+
 while True:
     print("Bem vindo! Digite seu login e senha para continuar\n")
     login = input("Login: ")
@@ -563,7 +612,7 @@ while True:
         adminMenu(checkUsuario["Nome"])
     else:
         break
-"""
+
 
 """
 teste = collEstoque.aggregate([
