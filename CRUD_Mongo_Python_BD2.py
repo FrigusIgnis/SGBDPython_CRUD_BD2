@@ -1,8 +1,10 @@
 import pymongo
+import os
 import string, random
 from random import randint
 from datetime import date
 from datetime import datetime
+import time
 
 
 client = pymongo.MongoClient("mongodb+srv://NicolasSilva:nsda1205@sgdbpython-crud-nsda-bd.p1kei.mongodb.net/?retryWrites=true&w=majority")
@@ -12,6 +14,7 @@ myDB = client["myDatabase"]
 collEstoque = myDB["Estoque"]
 collFuncionarios = myDB["Funcionarios"]
 collPatrocinadores = myDB["Patrocinadores"]
+
 
 # Gerimento de relatórios
 
@@ -59,6 +62,7 @@ def cadastrarFuncionario(nome, cpf, codFunc, isAdmin):
     cadastroFunc = {"Nome":nome, "CPF":cpf, "CodFunc":codFunc, codFunc:random.randint(100000, 999999), "Admin?":isAdmin}
     collFuncionarios.insert_one(cadastroFunc)
     print(f'Funcionário adicionado com sucesso!\nNome: {nome}\n{("Usuário: "+ codFunc)}\n{("Senha: %d" % cadastroFunc[codFunc])}\n')
+    input()
 
 def consultarFuncionario():
     busca = input("Campo de busca: ")
@@ -75,7 +79,8 @@ def consultarFuncionario():
         print(f'{"NOME":^50}||{"CÓDIGO":^15}||')
         print(f'{"":^50}||{"":^15}||')
         for item in listaResultado:
-            print(f'{item["Nome"]:^50}||{item["CodFunc"]:^15}||')
+            print(f'{item["Nome"]:<50}||{item["CodFunc"]:<15}||')
+        input()
 
 def listarFuncionario():
     totalFuncionarios = 0
@@ -84,6 +89,7 @@ def listarFuncionario():
         print("__________________________________________________")
         totalFuncionarios += 1
     print("Os dados de %d funcionários foram carregados.\n" % totalFuncionarios)
+    input()
 
 def excluirFuncionario():
     cod = input("Código de funcionário: ")
@@ -92,22 +98,28 @@ def excluirFuncionario():
     if queryFunc != None:
         collFuncionarios.delete_one(queryFunc)
         print("Funcionário excluído do sistema com sucesso.")
+        time.sleep(2)
 
 def atualizarDadosFuncionario():
+    os.system("clear")
     cod = input("Código de funcionário: ")
     funcionario = procurarFunc(cod)
+    os.system("clear")
     dadosParaAtt = int(
         input("Selecione a opção a ser atualizada:\n1. Nome\n2. Senha\n\nCOMANDO: "))
     if dadosParaAtt == 1:
+        os.system("clear")
         nomeFunc = input("Nome: ")
         updateDados = {"$set": {"Nome": nomeFunc}}
         collFuncionarios.update_one({"Nome": funcionario["Nome"]}, updateDados)
     elif dadosParaAtt == 2:
+        os.system("clear")
         print("Gerando nova senha...\n")
         novaSenha = random.randint(100000, 999999)
         updateDados = {"$set": {cod:novaSenha}}
         collFuncionarios.update_one({cod:funcionario[cod]}, updateDados)
         print("\nNova senha para o usuário %s: %d\n" % (cod,novaSenha))
+        input()
 
 def gerarCodigoFuncionario():
     cod = ""
@@ -144,6 +156,7 @@ def atualizarEstoque(qtd, codigo):
     collEstoque.update_one({"Quantidade": produto["Quantidade"]}, updateQtd)
     print("Estoque do produto Nº %d atualizado com sucesso." %
           produto["Codigo"])
+    time.sleep(2)
 
 def procurarProduto(codProduto):
     queryProduto = None
@@ -187,6 +200,7 @@ def attPatrocinadorRem(produto):
             break
 
 def cadastrarProduto(nome, preco, qtd, cod, marca):
+    os.system("clear")
     cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod, "Marca": marca}
     collEstoque.insert_one(cadastroProduto)
     print("\nUm novo produto foi adicionado com sucesso!\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: %s\n\n" % (
@@ -200,8 +214,11 @@ def cadastrarProduto(nome, preco, qtd, cod, marca):
     if checkMarca == False:
         cadastroPatrocinador = {"Marca":marca, "Produtos":[nome]}
         collPatrocinadores.insert_one(cadastroPatrocinador)
+    
+    time.sleep(2)
 
 def consultarProduto():
+    os.system("clear")
     busca = input("Campo de busca: ")
     totalProdutosBusca = 0
     listaResultado = []
@@ -218,31 +235,35 @@ def consultarProduto():
         for item in listaResultado:
             print(f'{item["Nome"]:^25}||{item["Codigo"]:^10}||{item["Quantidade"]:^12}||{item["Preco"]:^12}||{item["Marca"]:^15}')
         print("\n")
+        input()
 
-def listarProdutos(): #Add Join
-    totalProdutos = 0
-
-    joinPatrocinadores = collEstoque.aggregate([
+def listarProdutos():
+    os.system("clear")
+    joinPatrocinadores = collPatrocinadores.aggregate([
             {
                 '$lookup': {
-                    'from': "Patrocinadores",
+                    'from': "Estoque",
                     'localField': "Marca",
                     'foreignField': "Marca",
-                    'as': 'ProdutoPatrocinador'
+                    'as': 'produtoPatrocinador'
                 }
             }
         ])
 
-    for marca in collPatrocinadores.find().sort("Marca"):
-        estoqueMarca = []
-        #Ini
-        print("\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: " % (produto["Nome"], produto["Preco"], produto["Quantidade"], produto["Codigo"], produto["Marca"]))
-        print("__________________________________________________")
-        #Fim
-        totalProdutos += 1
-    print("Os dados de %d produtos foram carregados.\n" % totalProdutos)
+    for marca in joinPatrocinadores:
+        id = 1
+        print(f'{marca["Marca"]:<15}')
+        print("________________________________________________\n")
+        for produto in marca["produtoPatrocinador"]:
+            print(f'{id:<2} | Nome: {produto["Nome"]:<20} || Código do produto: {produto["Codigo"]:<6} || Preço: {produto["Preco"]:<10}')
+            id += 1
+        
+        print("________________________________________________\n")
+
+    input()
 
 def excluirProduto():
+    os.system("clear")
     cod = int(input("Código do produto: "))
     queryProduto = procurarProduto(cod)
     relatProduto = queryProduto
@@ -251,26 +272,32 @@ def excluirProduto():
         attPatrocinadorRem(queryProduto)
         collEstoque.delete_one(queryProduto)
         print("Produto excluído do sistema com sucesso.")
+        time.sleep(2)
 
     return relatProduto
 
 def atualizarDadosProduto():
+    os.system("clear")
     estoqueAtt = []
     cod = int(input("Código do produto: "))
     produto = procurarProduto(cod)
+    os.system("clear")
     dadosParaAtt = int(
-        input("Selecione a opção a ser atualizada:\n1. Nome\n2. Preço\n3. Quantidade"))
+        input("Selecione a opção a ser atualizada:\n1. Nome\n2. Preço\n3. Quantidade\n\nCOMANDO: "))
     if dadosParaAtt == 1:
+        os.system("clear")
         nomeProduto = input("Novo nome do produto: ")
         updateDados = {"$set": {"Nome": nomeProduto}}
         collEstoque.update_one({"Nome": produto["Nome"]}, updateDados)
     elif dadosParaAtt == 2:
+        os.system("clear")
         precoProduto = float(input("Novo preço(Formato:0.00): "))
         updateDados = {"$set": {"Preco": precoProduto}}
         collEstoque.update_one({"Preco": produto["Preco"]}, updateDados)
     elif dadosParaAtt == 3:
+        os.system("clear")
         opcaoQtd = int(
-            input("Selecione a opção de atualização:\n1. Reabastecimento\n2. Retirada\n"))
+            input("Selecione a opção de atualização:\n1. Reabastecimento\n2. Retirada\n\n COMANDO: "))
         qtdProduto = int(input("Quantidade: "))
         if opcaoQtd == 1:
             atualizarEstoque(qtdProduto, produto["Codigo"])
@@ -279,7 +306,6 @@ def atualizarDadosProduto():
         elif opcaoQtd == 2:
             atualizarEstoque((qtdProduto*-1), produto["Codigo"])
             estoqueAtt = [cod,(qtdProduto*-1)]
-            print(estoqueAtt)
             return estoqueAtt
         else:
             print("Comando não reconhecido.")
@@ -321,6 +347,7 @@ def caixaMenu():
     resumoCompra = ""
 
     while True:
+        os.system("clear")
         caixaRelatorio = open("Caixa.txt",'a')
         resumoCompra = atualizarResumoCompra(resumoCompra, listaProdutos)
         valorTotal = atualizarValorTotal(valorTotal, listaProdutos)
@@ -337,6 +364,7 @@ def caixaMenu():
         COMANDO: """ % (resumoCompra, valorTotal)))
 
         if caixaOp == 1:
+            os.system("clear")
             while True:
                 itemCompra = {"Nome": "", "Quantidade": 0, "Preco": 0.0, "Codigo": 0}
                 item = input("Insira o código e a quantidade: ").split(" ")
@@ -359,6 +387,7 @@ def caixaMenu():
                     break
 
         elif caixaOp == 2:
+            print()
             retirarID = int(input("Código do produto: "))
             listaProdutos = retirarProduto(listaProdutos, retirarID)
         
@@ -401,6 +430,7 @@ def caixaMenu():
 def logisticaMenu():
     acoesLogistica = {"Cadastro":{}, "Exclusao":{}, "Reabastecimento":{}, "Retirada":{}}
     while True:
+        os.system("clear")
         logisticaRelatorio = open("Logistica.txt",'a')
         logistica = int(input("""LOGÍSTICA HortiLife\n\n
         1. Cadastrar produto
@@ -413,6 +443,7 @@ def logisticaMenu():
         COMANDO: """))
 
         if logistica == 1:
+            os.system("clear")
             nome = input("Nome do produto: ")
             preco = float(input("Preço: "))
             qtd = int(input("Quantidade: "))
@@ -426,20 +457,23 @@ def logisticaMenu():
                 acoesLogistica["Cadastro"][marca] = [[nome, cod]]
 
         if logistica == 2:
+            os.system("clear")
             consultarProduto()
 
         if logistica == 3:
+            os.system("clear")
             listarProdutos()
 
         if logistica == 4:
+            os.system("clear")
             produtoRelat = excluirProduto()
             if produtoRelat["Marca"] in acoesLogistica["Exclusao"].keys():
                 acoesLogistica["Exclusao"][produtoRelat["Marca"]].append([produtoRelat["Nome"]])
             else:
                 acoesLogistica["Exclusao"][produtoRelat["Marca"]] = [produtoRelat["Nome"]]
-            print(acoesLogistica)
 
         if logistica == 5:
+            os.system("clear")
             estoqueLog = atualizarDadosProduto()
             if len(estoqueLog) > 0:
                 if estoqueLog[1] < 0:
@@ -487,6 +521,7 @@ def logisticaMenu():
 
 def funcionariosMenu():
     while True:
+        os.system("clear")
         funcionarios = int(input("""GERÊNCIA HortiLife
         1. Cadastrar novo funcionário
         2. Pesquisar funcionário
@@ -497,6 +532,7 @@ def funcionariosMenu():
         COMANDO: """))
 
         if funcionarios == 1:
+            os.system("clear")
             nome = input("Nome: ")
             cpf = input("CPF: ")
             isAdmin = False
@@ -516,15 +552,19 @@ def funcionariosMenu():
             cadastrarFuncionario(nome, cpf, codFunc, isAdmin)
 
         if funcionarios == 2:
+            os.system("clear")
             consultarFuncionario()
 
         if funcionarios == 3:
+            os.system("clear")
             listarFuncionario()
 
         if funcionarios == 4:
+            os.system("clear")
             excluirFuncionario()
 
         if funcionarios == 5:
+            os.system("clear")
             atualizarDadosFuncionario()
 
         if funcionarios == 6:
@@ -536,6 +576,7 @@ def adminMenu(nomeUsuario):
     relatorioArq = open(nomeRelatorio, 'w')
     relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
     while True:
+        os.system("clear")
         admin = int(input("""ADMINISTRAÇÃO HortiLife
     
         1. Gerenciar funcionários
@@ -563,6 +604,8 @@ def adminMenu(nomeUsuario):
             relatorioArq.write("\n" + relatorioFinal + "\n")
             relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
             relatorioArq.close()
+            os.remove("Caixa.txt")
+            os.remove("Logistica.txt")
             break
 
         else:
@@ -573,6 +616,7 @@ def sistemaMenu(nomeUsuario):
     relatorioArq = open(nomeRelatorio, 'a')
     relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
     while True:
+        os.system("clear")
         menu = int(input("""SISTEMA HortiLife
         1. Operação de caixa
         2. Operação de logística
@@ -591,6 +635,8 @@ def sistemaMenu(nomeUsuario):
             relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n")
             relatorioArq.close()
             print("O relatório foi gerado com sucesso! Desativando sistema...")
+            os.remove("Caixa.txt")
+            os.remove("Logistica.txt")
             break
 
         else:
@@ -601,113 +647,19 @@ def sistemaMenu(nomeUsuario):
 # Executável
 
 while True:
-    print("Bem vindo! Digite seu login e senha para continuar\n")
-    login = input("Login: ")
-    senha = int(input("Senha: "))
+    try:
+        os.system("clear")
+        print("Bem vindo! Digite seu login e senha para continuar\n")
+        login = input("Login: ")
+        senha = int(input("Senha: "))
 
-    checkUsuario = validarUsuario(login, senha)
-    if checkUsuario != None and checkUsuario["Admin?"] != True:
-        sistemaMenu(checkUsuario["Nome"])
-    elif checkUsuario != None and checkUsuario["Admin?"] == True:
-        adminMenu(checkUsuario["Nome"])
-    else:
-        break
-
-
-"""
-teste = collEstoque.aggregate([
-    {
-        '$lookup': {
-            'from': "Patrocinadores",
-            'localField': "Marca",
-            'foreignField': "Marca",
-            'as': 'ProdutoPatrocinador'
-        }
-    }
-])
-
-for item in teste:
-    print(item)
-
-"""
-"""
-cadastrarProduto("Banana Prata", 3.09, 200, 1000, "Filomena")
-cadastrarProduto("Banana Prata", 2.99, 150, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Banana Prata", 3.04, 175, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Morango", 19.99, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Morango", 20.09, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Maçã verde", 14.99, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Maçã verde", 14.79, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Maçã vermelha", 5.99, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Maçã vermelha", 5.79, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Uva verde", 10.99, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Uva verde", 10.99, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Uva verde", 10.96, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Uva verde", 10.94, 200, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Uva verde", 10.89, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Uva roxa", 6.89, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Uva roxa", 6.89, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Melão verde", 4.99, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Melão verde", 4.99, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Melão verde", 4.89, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Melância vermelha", 4.59, 150, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Melância vermelha", 4.79, 150, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Melância amarela", 3.59, 150, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Melância amarela", 3.69, 150, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Kiwi", 19.89, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Kiwi", 19.79, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Mamão Papaya", 6.49, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Mamão Papaya", 6.49, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Quiabo", 5.69, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Coentro", 4.89, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Salsa", 3.39, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Salsa", 3.39, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Abóbora", 2.29, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Abóbora", 2.19, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Tomate", 3.59, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Tomate", 3.59, 200, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Cebola", 2.49, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Cebola", 2.49, 200, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Alho", 17.19, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Alho", 17.19, 200, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Couve", 6.99, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Filomena")
-cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Pomária")
-cadastrarProduto("Beterraba", 2.29, 200, gerarCodigoProduto(), "AgroFruti")
-cadastrarProduto("Cogumelo shitake", 48.59, 100, gerarCodigoProduto(), "Hortal")
-cadastrarProduto("Cogumelo champignon", 46.09, 100, gerarCodigoProduto(), "Filó")
-cadastrarProduto("Cogumento shimeji", 13.89, 200, gerarCodigoProduto(), "AgroFruti")
-"""
-
-"""
-inserirProdutos = [
-{"Nome":"Banana prata", "Preco":3.09, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Morango", "Preco":19.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Maçã verde", "Preco":14.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Maçã vermelha", "Preco":5.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Uva verde", "Preco":10.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Uva roxa", "Preco":6.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Melão verde", "Preco":4.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Melância vermelha", "Preco":4.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Melância amarela", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Kiwi", "Preco":19.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Mamão Papaya", "Preco":6.49, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Quiabo", "Preco":5.69, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Coentro", "Preco":4.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Salsa", "Preco":3.39, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Abóbora", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Tomate", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Cebola", "Preco":2.49, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Alho", "Preco":17.19, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Couve", "Preco":6.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Couve-flor", "Preco":5.19, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Beterraba", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Cogumelo shitake", "Preco":48.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Cogumelo champignon", "Preco":46.09, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
-{"Nome":"Cogumelo shimeji", "Preco":13.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()}
-]
-
-collEstoque.insert_many(inserirProdutos)"""
+        checkUsuario = validarUsuario(login, senha)
+        if checkUsuario != None and checkUsuario["Admin?"] != True:
+            sistemaMenu(checkUsuario["Nome"])
+        elif checkUsuario != None and checkUsuario["Admin?"] == True:
+            adminMenu(checkUsuario["Nome"])
+        else:
+            break
+    except:
+        os.system("clear")
+        print("-- Login e/ou senha inválidos --")
