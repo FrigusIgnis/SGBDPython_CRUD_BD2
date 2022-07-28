@@ -1,5 +1,87 @@
 import os
 
+"""
+cadastrarProduto("Banana Prata", 3.09, 200, 1000, "Filomena")
+cadastrarProduto("Banana Prata", 2.99, 150, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Banana Prata", 3.04, 175, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Morango", 19.99, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Morango", 20.09, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Maçã verde", 14.99, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Maçã verde", 14.79, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Maçã vermelha", 5.99, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Maçã vermelha", 5.79, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Uva verde", 10.99, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Uva verde", 10.99, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Uva verde", 10.96, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Uva verde", 10.94, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Uva verde", 10.89, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Uva roxa", 6.89, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Uva roxa", 6.89, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Melão verde", 4.99, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Melão verde", 4.99, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Melão verde", 4.89, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Melância vermelha", 4.59, 150, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Melância vermelha", 4.79, 150, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Melância amarela", 3.59, 150, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Melância amarela", 3.69, 150, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Kiwi", 19.89, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Kiwi", 19.79, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Mamão Papaya", 6.49, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Mamão Papaya", 6.49, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Quiabo", 5.69, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Coentro", 4.89, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Salsa", 3.39, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Salsa", 3.39, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Abóbora", 2.29, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Abóbora", 2.19, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Tomate", 3.59, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Tomate", 3.59, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Cebola", 2.49, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Cebola", 2.49, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Alho", 17.19, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Alho", 17.19, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Couve", 6.99, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Filomena")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Couve-flor", 5.19, 200, gerarCodigoProduto(), "Pomária")
+cadastrarProduto("Beterraba", 2.29, 200, gerarCodigoProduto(), "AgroFruti")
+cadastrarProduto("Cogumelo shitake", 48.59, 100, gerarCodigoProduto(), "Hortal")
+cadastrarProduto("Cogumelo champignon", 46.09, 100, gerarCodigoProduto(), "Filó")
+cadastrarProduto("Cogumento shimeji", 13.89, 200, gerarCodigoProduto(), "AgroFruti")
+"""
+
+"""
+inserirProdutos = [
+{"Nome":"Banana prata", "Preco":3.09, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Morango", "Preco":19.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Maçã verde", "Preco":14.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Maçã vermelha", "Preco":5.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Uva verde", "Preco":10.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Uva roxa", "Preco":6.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Melão verde", "Preco":4.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Melância vermelha", "Preco":4.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Melância amarela", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Kiwi", "Preco":19.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Mamão Papaya", "Preco":6.49, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Quiabo", "Preco":5.69, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Coentro", "Preco":4.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Salsa", "Preco":3.39, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Abóbora", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Tomate", "Preco":3.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cebola", "Preco":2.49, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Alho", "Preco":17.19, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Couve", "Preco":6.99, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Couve-flor", "Preco":5.19, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Beterraba", "Preco":2.29, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cogumelo shitake", "Preco":48.59, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cogumelo champignon", "Preco":46.09, "Quantidade": 200, "Codigo":gerarCodigoProduto()},
+{"Nome":"Cogumelo shimeji", "Preco":13.89, "Quantidade": 200, "Codigo":gerarCodigoProduto()}
+]
+
+collEstoque.insert_many(inserirProdutos)"""
+
 aluno = []
 prof = []
 disc = []
