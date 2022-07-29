@@ -63,7 +63,7 @@ def gerarRelatorioAdmin(arq1, arq2, arq3):
 
 
 # __________________________________________________________________________
-# Gerenciamento de usuário/funcionário -- Fazer revisão e ajustar funções
+# Gerenciamento de usuário/funcionário
 
 
 def procurarFunc(codFunc):
@@ -670,7 +670,7 @@ def funcionariosMenu():
             print("Comando inválido! Tente novamente!")
             time.sleep(1)
 
-def adminMenu(nomeUsuario): #Ajustar menu e configurações
+def adminMenu(nomeUsuario):
     nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d_%m_%Y") + "_" + datetime.now().strftime("%H.%M.%S")
     relatorioArq = open(nomeRelatorio, 'a')
     relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
