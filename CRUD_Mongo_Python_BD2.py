@@ -237,11 +237,12 @@ def attPatrocinadorRem(produto):
 
 def cadastrarProduto(nome, preco, qtd, cod, marca):
     os.system("clear")
-    cadastroProduto = {"Nome": nome, "Preco": preco,
-                       "Quantidade": qtd, "Codigo": cod, "Marca": marca}
+    cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod, "Marca": marca}
     collEstoque.insert_one(cadastroProduto)
+    
     print("\nUm novo produto foi adicionado com sucesso!\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: %s\n\n" % (
         nome, preco, qtd, cod, marca))
+
     checkMarca = False
     for patrocinador in collPatrocinadores.find():
         if marca in patrocinador["Marca"]:
