@@ -1,13 +1,15 @@
 import pymongo
 import os
-import string, random
+import string
+import random
 from random import randint
 from datetime import date
 from datetime import datetime
 import time
 
 
-client = pymongo.MongoClient("mongodb+srv://NicolasSilva:nsda1205@sgdbpython-crud-nsda-bd.p1kei.mongodb.net/?retryWrites=true&w=majority")
+client = pymongo.MongoClient(
+    "mongodb+srv://NicolasSilva:nsda1205@sgdbpython-crud-nsda-bd.p1kei.mongodb.net/?retryWrites=true&w=majority")
 
 myDB = client["myDatabase"]
 
@@ -19,7 +21,7 @@ collPatrocinadores = myDB["Patrocinadores"]
 # Gerimento de relatórios
 
 def gerarRelatorio(arq1, arq2):
-    caixa = open(arq1,'r')
+    caixa = open(arq1, 'r')
     logistica = open(arq2, 'r')
     relatorio = ""
 
@@ -35,8 +37,34 @@ def gerarRelatorio(arq1, arq2):
 
     return relatorio
 
+def gerarRelatorioAdmin(arq1, arq2, arq3):
+    caixa = open(arq1, 'r')
+    logistica = open(arq2, 'r')
+    funcionario = open(arq3, 'r')
+    relatorio = ""
+
+    relatorio += "--- OPERAÇÕES DE CAIXA\n"
+    for linha in caixa.readlines():
+        relatorio += linha
+
+    relatorio += "\n"
+
+    relatorio += "--- OPERAÇÕES DE LOGÍSTICA\n"
+    for linha in logistica.readlines():
+        relatorio += linha
+
+    relatorio += "\n"
+
+    relatorio += "--- OPERAÇÕES DE ADMINISTRAÇÃO\n"
+    for linha in funcionario.readlines():
+        relatorio += linha
+    
+    return relatorio
+
+
 # __________________________________________________________________________
-# Gerenciamento de usuário/funcionário
+# Gerenciamento de usuário/funcionário -- Fazer revisão e ajustar funções
+
 
 def procurarFunc(codFunc):
     queryFunc = None
@@ -50,7 +78,7 @@ def procurarFunc(codFunc):
 
 def validarUsuario(usuario, senha):
     queryUsuario = None
-    for usuario in collFuncionarios.find({usuario:senha}):
+    for usuario in collFuncionarios.find({usuario: senha}):
         queryUsuario = usuario
 
     if(queryUsuario != None):
@@ -59,9 +87,11 @@ def validarUsuario(usuario, senha):
         print("Usuário e/ou senha incorretos! Tente novamente.")
 
 def cadastrarFuncionario(nome, cpf, codFunc, isAdmin):
-    cadastroFunc = {"Nome":nome, "CPF":cpf, "CodFunc":codFunc, codFunc:random.randint(100000, 999999), "Admin?":isAdmin}
+    cadastroFunc = {"Nome": nome, "CPF": cpf, "CodFunc": codFunc,
+                    codFunc: random.randint(100000, 999999), "Admin?": isAdmin}
     collFuncionarios.insert_one(cadastroFunc)
-    print(f'Funcionário adicionado com sucesso!\nNome: {nome}\n{("Usuário: "+ codFunc)}\n{("Senha: %d" % cadastroFunc[codFunc])}\n')
+    print(
+        f'Funcionário adicionado com sucesso!\nNome: {nome}\n{("Usuário: "+ codFunc)}\n{("Senha: %d" % cadastroFunc[codFunc])}\n')
     input()
 
 def consultarFuncionario():
@@ -74,18 +104,20 @@ def consultarFuncionario():
     if(len(listaResultado) == 0):
         print("Nenhum funcionário foi encontrado com este nome.")
     else:
-        print("\nOs dados de %d funcionários foram carregados.\n" % totalFuncBusca)
+        print("\nOs dados de %d funcionários foram carregados.\n" %
+              totalFuncBusca)
 
-        print(f'{"NOME":^50}||{"CÓDIGO":^15}||')
-        print(f'{"":^50}||{"":^15}||')
+        print(f'{"NOME":^40}||{"CÓDIGO":^12}||')
+        print(f'{"":^40}||{"":^12}||')
         for item in listaResultado:
-            print(f'{item["Nome"]:<50}||{item["CodFunc"]:<15}||')
+            print(f'{item["Nome"]:^40}||{item["CodFunc"]:^12}||')
         input()
 
 def listarFuncionario():
     totalFuncionarios = 0
     for funcionario in collFuncionarios.find().sort("Nome"):
-        print("\nNome: %s\nCódigo de funcionário: %s" % (funcionario["Nome"], funcionario["CodFunc"]))
+        print("\nNome: %s\nCódigo de funcionário: %s" %
+              (funcionario["Nome"], funcionario["CodFunc"]))
         print("__________________________________________________")
         totalFuncionarios += 1
     print("Os dados de %d funcionários foram carregados.\n" % totalFuncionarios)
@@ -94,11 +126,14 @@ def listarFuncionario():
 def excluirFuncionario():
     cod = input("Código de funcionário: ")
     queryFunc = procurarFunc(cod)
+    relatFunc = queryFunc
 
     if queryFunc != None:
         collFuncionarios.delete_one(queryFunc)
         print("Funcionário excluído do sistema com sucesso.")
-        time.sleep(2)
+        time.sleep(3)
+    
+    return relatFunc
 
 def atualizarDadosFuncionario():
     os.system("clear")
@@ -116,9 +151,9 @@ def atualizarDadosFuncionario():
         os.system("clear")
         print("Gerando nova senha...\n")
         novaSenha = random.randint(100000, 999999)
-        updateDados = {"$set": {cod:novaSenha}}
-        collFuncionarios.update_one({cod:funcionario[cod]}, updateDados)
-        print("\nNova senha para o usuário %s: %d\n" % (cod,novaSenha))
+        updateDados = {"$set": {cod: novaSenha}}
+        collFuncionarios.update_one({cod: funcionario[cod]}, updateDados)
+        print("\nNova senha para o usuário %s: %d\n" % (cod, novaSenha))
         input()
 
 def gerarCodigoFuncionario():
@@ -140,9 +175,9 @@ def gerarCodigoFuncionario():
             cod = ""
         else:
             break
-    
+
     return cod
-        
+
 # __________________________________________________________________________
 
 # Gerencimaneto de estoque
@@ -156,7 +191,6 @@ def atualizarEstoque(qtd, codigo):
     collEstoque.update_one({"Quantidade": produto["Quantidade"]}, updateQtd)
     print("Estoque do produto Nº %d atualizado com sucesso." %
           produto["Codigo"])
-    time.sleep(2)
 
 def procurarProduto(codProduto):
     queryProduto = None
@@ -186,8 +220,9 @@ def attPatrocinadorAdd(produto):
         if produto["Marca"] == patrocinador["Marca"]:
             produtosRegistrados = patrocinador["Produtos"]
             produtosRegistrados.append(produto["Nome"])
-            updateProdutosPatro = {"$set":{"Produtos":produtosRegistrados}}
-            collPatrocinadores.update_one({"Marca":produto["Marca"]}, updateProdutosPatro)
+            updateProdutosPatro = {"$set": {"Produtos": produtosRegistrados}}
+            collPatrocinadores.update_one(
+                {"Marca": produto["Marca"]}, updateProdutosPatro)
             break
 
 def attPatrocinadorRem(produto):
@@ -195,13 +230,15 @@ def attPatrocinadorRem(produto):
         if produto["Marca"] == patrocinador["Marca"] and produto["Nome"] in patrocinador["Produtos"]:
             produtosRegistrados = patrocinador["Produtos"]
             produtosRegistrados.remove(produto["Nome"])
-            updateProdutosPatro = {"$set":{"Produtos":produtosRegistrados}}
-            collPatrocinadores.update_one({"Marca":produto["Marca"]}, updateProdutosPatro)
+            updateProdutosPatro = {"$set": {"Produtos": produtosRegistrados}}
+            collPatrocinadores.update_one(
+                {"Marca": produto["Marca"]}, updateProdutosPatro)
             break
 
 def cadastrarProduto(nome, preco, qtd, cod, marca):
     os.system("clear")
-    cadastroProduto = {"Nome": nome, "Preco": preco, "Quantidade": qtd, "Codigo": cod, "Marca": marca}
+    cadastroProduto = {"Nome": nome, "Preco": preco,
+                       "Quantidade": qtd, "Codigo": cod, "Marca": marca}
     collEstoque.insert_one(cadastroProduto)
     print("\nUm novo produto foi adicionado com sucesso!\nNome: %s\nPreço: %.2f\nQuantidade: %d\nCódigo do produto: %d\nMarca: %s\n\n" % (
         nome, preco, qtd, cod, marca))
@@ -212,10 +249,10 @@ def cadastrarProduto(nome, preco, qtd, cod, marca):
             checkMarca = True
 
     if checkMarca == False:
-        cadastroPatrocinador = {"Marca":marca, "Produtos":[nome]}
+        cadastroPatrocinador = {"Marca": marca, "Produtos": [nome]}
         collPatrocinadores.insert_one(cadastroPatrocinador)
-    
-    time.sleep(2)
+
+    input()
 
 def consultarProduto():
     os.system("clear")
@@ -228,36 +265,40 @@ def consultarProduto():
     if(len(listaResultado) == 0):
         print("Nenhum produto foi encontrado com este nome.")
     else:
-        print("\nOs dados de %d produtos foram carregados.\n" % totalProdutosBusca)
+        print("\nOs dados de %d produtos foram carregados.\n" %
+              totalProdutosBusca)
 
-        print(f'{"PRODUTO":^25}||{"CÓDIGO":^10}||{"QUANTIDADE":^12}||{"PREÇO/KG":^12}||{"MARCA":^15}')
+        print(
+            f'{"PRODUTO":^25}||{"CÓDIGO":^10}||{"QUANTIDADE":^12}||{"PREÇO/KG":^12}||{"MARCA":^15}')
         print(f'{"":^25}||{"":^10}||{"":^12}||{"":^12}||{"":^15}')
         for item in listaResultado:
-            print(f'{item["Nome"]:^25}||{item["Codigo"]:^10}||{item["Quantidade"]:^12}||{item["Preco"]:^12}||{item["Marca"]:^15}')
+            print(
+                f'{item["Nome"]:^25}||{item["Codigo"]:^10}||{item["Quantidade"]:^12}||{item["Preco"]:^12}||{item["Marca"]:^15}')
         print("\n")
         input()
 
 def listarProdutos():
     os.system("clear")
     joinPatrocinadores = collPatrocinadores.aggregate([
-            {
-                '$lookup': {
-                    'from': "Estoque",
-                    'localField': "Marca",
-                    'foreignField': "Marca",
-                    'as': 'produtoPatrocinador'
-                }
+        {
+            '$lookup': {
+                'from': "Estoque",
+                'localField': "Marca",
+                'foreignField': "Marca",
+                'as': 'produtoPatrocinador'
             }
-        ])
+        }
+    ])
 
     for marca in joinPatrocinadores:
         id = 1
         print(f'{marca["Marca"]:<15}')
         print("________________________________________________\n")
         for produto in marca["produtoPatrocinador"]:
-            print(f'{id:<2} | Nome: {produto["Nome"]:<20} || Código do produto: {produto["Codigo"]:<6} || Preço: {produto["Preco"]:<10}')
+            print(
+                f'{id:<2} | Nome: {produto["Nome"]:<20} || Código do produto: {produto["Codigo"]:<6} || Preço: {produto["Preco"]:<10}')
             id += 1
-        
+
         print("________________________________________________\n")
 
     input()
@@ -272,7 +313,7 @@ def excluirProduto():
         attPatrocinadorRem(queryProduto)
         collEstoque.delete_one(queryProduto)
         print("Produto excluído do sistema com sucesso.")
-        time.sleep(2)
+        time.sleep(3)
 
     return relatProduto
 
@@ -305,13 +346,15 @@ def atualizarDadosProduto():
             return estoqueAtt
         elif opcaoQtd == 2:
             atualizarEstoque((qtdProduto*-1), produto["Codigo"])
-            estoqueAtt = [cod,(qtdProduto*-1)]
+            estoqueAtt = [cod, (qtdProduto*-1)]
             return estoqueAtt
         else:
             print("Comando não reconhecido.")
 
     else:
         print("Comando não reconhecido. Tente novamente.")
+
+    return estoqueAtt
 
 # ____________________________________________________________________________
 
@@ -339,7 +382,7 @@ def retirarProduto(carrinhoCompras, id):
 
 # __________________________________________________________________________
 
-#Interfaces do sistema
+# Interfaces do sistema
 
 def caixaMenu():
     listaProdutos = []
@@ -348,12 +391,12 @@ def caixaMenu():
 
     while True:
         os.system("clear")
-        caixaRelatorio = open("Caixa.txt",'a')
+        caixaRelatorio = open("Caixa.txt", 'a')
         resumoCompra = atualizarResumoCompra(resumoCompra, listaProdutos)
         valorTotal = atualizarValorTotal(valorTotal, listaProdutos)
         caixaOp = int(input("""CAIXA HortiLife\n\nCarrinho de compras atual\n%s
         \n
-        Valor Total: %.2f
+        --> Valor Total: %.2f
         \n
 
         1. Adicionar itens
@@ -366,17 +409,19 @@ def caixaMenu():
         if caixaOp == 1:
             os.system("clear")
             while True:
-                itemCompra = {"Nome": "", "Quantidade": 0, "Preco": 0.0, "Codigo": 0}
+                itemCompra = {"Nome": "", "Quantidade": 0,
+                              "Preco": 0.0, "Codigo": 0}
                 item = input("Insira o código e a quantidade: ").split(" ")
                 if item[0] != "0":
                     check = False
                     itemDados = procurarProduto(int(item[0]))
                     if itemDados != None:
                         itemCompra = {"Nome": itemDados["Nome"], "Quantidade": int(
-                            item[1]), "Preco": itemDados["Preco"], "Codigo": itemDados["Codigo"], "Marca":itemDados["Marca"]}
+                            item[1]), "Preco": itemDados["Preco"], "Codigo": itemDados["Codigo"], "Marca": itemDados["Marca"]}
                         for produtoCheck in listaProdutos:
                             if itemCompra["Codigo"] == produtoCheck["Codigo"]:
-                                listaProdutos[listaProdutos.index(produtoCheck)]["Quantidade"] += itemCompra["Quantidade"]
+                                listaProdutos[listaProdutos.index(
+                                    produtoCheck)]["Quantidade"] += itemCompra["Quantidade"]
                                 check = True
                                 break
                         if check == False:
@@ -390,19 +435,22 @@ def caixaMenu():
             print()
             retirarID = int(input("Código do produto: "))
             listaProdutos = retirarProduto(listaProdutos, retirarID)
-        
+
         elif caixaOp == 3:
             for item in listaProdutos:
-                    atualizarEstoque((item["Quantidade"] * -1), item["Codigo"])
+                atualizarEstoque((item["Quantidade"] * -1), item["Codigo"])
             confirmacao = int(
                 input("\n\n1. Confirmar operação\n2. Abortar operação\n\nCOMANDO: "))
             while True:
                 if confirmacao == 1:
-                    caixaRelatorio.write(date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
-                    openRelat = open("Caixa.txt",'r').readlines()
-                    print("\nCompra efetuada com sucesso! Retornando ao menu anterior...\n")
+                    caixaRelatorio.write(date.today().strftime(
+                        "%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
+                    openRelat = open("Caixa.txt", 'r').readlines()
+                    print(
+                        "\nCompra efetuada com sucesso! Retornando ao menu anterior...\n")
                     for item in listaProdutos:
-                        caixaRelatorio.write("Código do item: %s || Quantidade vendida: %s\n" % (str(item["Codigo"]), str(item["Quantidade"])))
+                        caixaRelatorio.write("Código do item: %s || Quantidade vendida: %s\n" % (
+                            str(item["Codigo"]), str(item["Quantidade"])))
 
                     caixaRelatorio.write("\n")
 
@@ -410,37 +458,42 @@ def caixaMenu():
                     valorTotal = 0.0
                     listaProdutos = []
                     caixaRelatorio.close()
+                    time.sleep(3)
                     break
                 if confirmacao == 2:
                     for item in listaProdutos:
                         if type(item) != float:
-                            atualizarEstoque(item["Quantidade"], item["Codigo"])
+                            atualizarEstoque(
+                                item["Quantidade"], item["Codigo"])
                     print("\nOperação abortada! Retornando para o menu anterior...\n")
                     resumoCompra = ""
                     valorTotal = 0.0
                     listaProdutos = []
+                    time.sleep(3)
                     break
                 else:
                     print("Comando inválido! Tente novamente.\n")
-        
+
         elif caixaOp == 4:
             print("\nRetornando ao menu anterior...\n")
             break
 
 def logisticaMenu():
-    acoesLogistica = {"Cadastro":{}, "Exclusao":{}, "Reabastecimento":{}, "Retirada":{}}
+    acoesLogistica = {"Cadastro": {}, "Exclusao": {},
+                      "Reabastecimento": {}, "Retirada": {}}
     while True:
         os.system("clear")
-        logisticaRelatorio = open("Logistica.txt",'a')
-        logistica = int(input("""LOGÍSTICA HortiLife\n\n
-        1. Cadastrar produto
-        2. Pesquisar produto
-        3. Listar estoque
-        4. Excluir produto
-        5. Atualizar estoque
-        6. Voltar ao menu anterior
+        logisticaRelatorio = open("Logistica.txt", 'a')
+
+        logistica = int(input("""LOGÍSTICA HortiLife\n
+    1. Cadastrar produto
+    2. Pesquisar produto
+    3. Listar estoque
+    4. Excluir produto
+    5. Atualizar estoque
+    6. Voltar ao menu anterior
         
-        COMANDO: """))
+    COMANDO: """))
 
         if logistica == 1:
             os.system("clear")
@@ -468,9 +521,11 @@ def logisticaMenu():
             os.system("clear")
             produtoRelat = excluirProduto()
             if produtoRelat["Marca"] in acoesLogistica["Exclusao"].keys():
-                acoesLogistica["Exclusao"][produtoRelat["Marca"]].append([produtoRelat["Nome"]])
+                acoesLogistica["Exclusao"][produtoRelat["Marca"]].append(
+                    [produtoRelat["Nome"]])
             else:
-                acoesLogistica["Exclusao"][produtoRelat["Marca"]] = [produtoRelat["Nome"]]
+                acoesLogistica["Exclusao"][produtoRelat["Marca"]] = [
+                    produtoRelat["Nome"]]
 
         if logistica == 5:
             os.system("clear")
@@ -478,57 +533,75 @@ def logisticaMenu():
             if len(estoqueLog) > 0:
                 if estoqueLog[1] < 0:
                     if estoqueLog[0] in acoesLogistica["Retirada"].keys():
-                        acoesLogistica["Retirada"][estoqueLog[0]] += estoqueLog[1]
+                        acoesLogistica["Retirada"][estoqueLog[0]
+                                                   ] += estoqueLog[1]
                     else:
-                        acoesLogistica["Retirada"][estoqueLog[0]] = estoqueLog[1]
+                        acoesLogistica["Retirada"][estoqueLog[0]
+                                                   ] = estoqueLog[1]
                 else:
                     if estoqueLog[0] in acoesLogistica["Reabastecimento"].keys():
-                        acoesLogistica["Reabastecimento"][estoqueLog[0]] += estoqueLog[1]
+                        acoesLogistica["Reabastecimento"][estoqueLog[0]
+                                                          ] += estoqueLog[1]
                     else:
-                        acoesLogistica["Reabastecimento"][estoqueLog[0]] = estoqueLog[1]
-        
+                        acoesLogistica["Reabastecimento"][estoqueLog[0]
+                                                          ] = estoqueLog[1]
+
         if logistica == 6:
-            logisticaRelatorio.write(date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+            logisticaRelatorio.write(date.today().strftime(
+                "%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
+            
+            logisticaRelatorio.write("CADASTRO - OPERAÇÕES\n")
+
             for marca in acoesLogistica["Cadastro"].keys():
                 for produto in acoesLogistica["Cadastro"][marca]:
-                    logisticaRelatorio.write(f'Nome: {produto[0]:<30} || Código: {produto[1]:<12} || Marca: {marca:<25}\n')
-            
+                    logisticaRelatorio.write(
+                        f'Nome: {produto[0]:<30} || Código: {produto[1]:<12} || Marca: {marca:<25}\n')
+
             logisticaRelatorio.write("\n\n")
 
             logisticaRelatorio.write("EXCLUSÃO - OPERAÇÕES\n")
             for marca in acoesLogistica["Exclusao"].keys():
                 nomeProduto = str(acoesLogistica["Exclusao"][marca])
-                logisticaRelatorio.write(f'Nome: {nomeProduto:<30} || Marca: {marca:<12}\n')
-            
+                logisticaRelatorio.write(
+                    f'Nome: {nomeProduto:<30} || Marca: {marca:<12}\n')
+
             logisticaRelatorio.write("\n\n")
 
             logisticaRelatorio.write("REABASTECIMENTO - OPERAÇÕES\n")
             for cod in acoesLogistica["Reabastecimento"].keys():
                 qtdReabastecida = str(acoesLogistica["Reabastecimento"][cod])
-                logisticaRelatorio.write(f'Código do produto: {cod:<30}  || Quantidade: {qtdReabastecida:<12}\n')
-            
+                logisticaRelatorio.write(
+                    f'Código do produto: {cod:<30}  || Quantidade: {qtdReabastecida:<12}\n')
+
             logisticaRelatorio.write("\n\n")
 
             logisticaRelatorio.write("RETIRADA - OPERAÇÕES\n")
             for cod in acoesLogistica["Retirada"].keys():
                 qtdRetirada = str(acoesLogistica["Retirada"][cod])
-                logisticaRelatorio.write(f'Código do produto: {cod:<30}  || Quantidade: {qtdRetirada:<12}\n')
-            
+                logisticaRelatorio.write(
+                    f'Código do produto: {cod:<30}  || Quantidade: {qtdRetirada:<12}\n')
+
             logisticaRelatorio.write("\n\n")
 
             print("\nRetornando ao menu anterior...\n")
             break
+        else:
+            print("Comando inválido! Tente novamente.")
 
 def funcionariosMenu():
+    acoesAdmin = {"Cadastro": {}, "Exclusao": {}}
     while True:
         os.system("clear")
+        funcRelatorio = open("Administracao.txt", 'a')
         funcionarios = int(input("""GERÊNCIA HortiLife
+
         1. Cadastrar novo funcionário
         2. Pesquisar funcionário
-        3. Alterar dados de funcionário
+        3. Listar funcionários
         4. Excluir funcionário
-        5. Voltar ao menu anterior
-        
+        5. Alterar dados de funcionário
+        6. Voltar ao menu anterior
+            
         COMANDO: """))
 
         if funcionarios == 1:
@@ -537,7 +610,7 @@ def funcionariosMenu():
             cpf = input("CPF: ")
             isAdmin = False
             while True:
-                isAdminInput = int(input("Administrador?\n1. Sim\n2. Não"))
+                isAdminInput = int(input("Administrador?\n1. Sim\n2. Não\n\n COMANDO: "))
                 if isAdminInput == 1:
                     isAdmin = True
                     break
@@ -551,39 +624,64 @@ def funcionariosMenu():
 
             cadastrarFuncionario(nome, cpf, codFunc, isAdmin)
 
-        if funcionarios == 2:
+            acoesAdmin["Cadastro"][nome] = [[cpf, codFunc]]
+
+        elif funcionarios == 2:
             os.system("clear")
             consultarFuncionario()
 
-        if funcionarios == 3:
+        elif funcionarios == 3:
             os.system("clear")
             listarFuncionario()
 
-        if funcionarios == 4:
+        elif funcionarios == 4:
             os.system("clear")
-            excluirFuncionario()
+            funcExcluido = excluirFuncionario()
+            acoesAdmin["Exclusao"][funcExcluido["Nome"]] = funcExcluido["CPF"]
 
-        if funcionarios == 5:
+        elif funcionarios == 5:
             os.system("clear")
             atualizarDadosFuncionario()
 
-        if funcionarios == 6:
+        elif funcionarios == 6:
+            funcRelatorio.write(date.today().strftime(
+                "%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
+            
+            funcRelatorio.write("CADASTRO - OPERAÇÕES\n")
+            
+            for funcionario in acoesAdmin["Cadastro"].keys():
+                for dado in acoesAdmin["Cadastro"][funcionario]:
+                    funcRelatorio.write(
+                        f'Nome: {funcionario:<50} || CPF.: {dado[0]:<12} || Código de func.: {dado[1]:<10}\n')
+
+            funcRelatorio.write("\n\n")
+
+            funcRelatorio.write("EXCLUSÃO - OPERAÇÕES\n")
+            for funcionario in acoesAdmin["Exclusao"].keys():
+                cpfFunc = str(acoesAdmin["Exclusao"][funcionario])
+                funcRelatorio.write(
+                    f'Nome: {funcionario:<50} || CPF: {cpfFunc:<12}\n')
             print("\nRetornando ao menu anterior...\n")
+            time.sleep(2)
             break
 
-def adminMenu(nomeUsuario):
-    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d/%m/%Y") + "_" + datetime.now().strftime("%H.%M.%S")
-    relatorioArq = open(nomeRelatorio, 'w')
-    relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+        else:
+            os.system("clear")
+            print("Comando inválido! Tente novamente!")
+            time.sleep(1)
+
+def adminMenu(nomeUsuario): #Ajustar menu e configurações
+    nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d_%m_%Y") + "_" + datetime.now().strftime("%H.%M.%S")
+    relatorioArq = open(nomeRelatorio, 'a')
+    relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
     while True:
         os.system("clear")
         admin = int(input("""ADMINISTRAÇÃO HortiLife
-    
+
         1. Gerenciar funcionários
         2. Gerenciar logística
         3. Gerenciar caixa
-        4. Carregar relatórios
-        5. Sair
+        4. Sair
     
         COMANDO: """))
 
@@ -595,26 +693,40 @@ def adminMenu(nomeUsuario):
 
         elif admin == 3:
             caixaMenu()
-        
-        elif admin == 4:
-            carregarRelatorio()
 
-        elif admin == 5:
-            relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
+        elif admin == 4:
+            checkCaixa = open("Caixa.txt", 'a')
+            checkLogistica = open("Logistica.txt", 'a')
+            checkFunc = open("Administracao.txt", 'a')
+            relatorioFinal = gerarRelatorioAdmin("Caixa.txt", "Logistica.txt", "Administracao.txt")
+
             relatorioArq.write("\n" + relatorioFinal + "\n")
-            relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n\n")
+            
+            relatorioArq.write("\nHorário de fechamento: " + date.today().strftime(
+                    "%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
             relatorioArq.close()
-            os.remove("Caixa.txt")
-            os.remove("Logistica.txt")
+
+            if os.path.exists("Caixa.txt") == True:
+                os.remove("Caixa.txt")
+
+            if os.path.exists("Logistica.txt") == True:
+                os.remove("Logistica.txt")
+                
+            if os.path.exists("Administracao.txt") == True:
+                os.remove("Administracao.txt")
+
             break
 
         else:
-            print("Comando inválido! Tente novamente!")
+            os.system("clear")
+            print("Comando inválido! Tente novamente")
+            time.sleep(1)
 
 def sistemaMenu(nomeUsuario):
     nomeRelatorio = nomeUsuario + "_" + date.today().strftime("%d_%m_%Y") + "_" + datetime.now().strftime("%H.%M.%S")
     relatorioArq = open(nomeRelatorio, 'a')
-    relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
+    relatorioArq.write(nomeUsuario + "\nHorário de abertura: " + date.today(
+      ).strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n\n")
     while True:
         os.system("clear")
         menu = int(input("""SISTEMA HortiLife
@@ -630,13 +742,26 @@ def sistemaMenu(nomeUsuario):
             logisticaMenu()
 
         elif menu == 3:
+            checkCaixa = open("Caixa.txt", 'a')
+            checkLogistica = open("Logistica.txt", 'a')
             relatorioFinal = gerarRelatorio("Caixa.txt", "Logistica.txt")
-            relatorioArq.write(relatorioFinal)
-            relatorioArq.write("Horário de fechamento: " + date.today().strftime("%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") +"\n")
+
+            relatorioArq.write("\n" + relatorioFinal + "\n")
+
+            relatorioArq.write("\nHorário de fechamento: " + date.today().strftime(
+                "%d/%m/%Y") + " " + datetime.now().strftime("%H:%M:%S") + "\n")
             relatorioArq.close()
+            checkCaixa.close()
+            checkLogistica.close()
+
             print("O relatório foi gerado com sucesso! Desativando sistema...")
-            os.remove("Caixa.txt")
-            os.remove("Logistica.txt")
+
+            if os.path.exists("Caixa.txt") == True:
+                os.remove("Caixa.txt")
+
+            if os.path.exists("Logistica.txt") == True:
+                os.remove("Logistica.txt")
+
             break
 
         else:
@@ -647,19 +772,15 @@ def sistemaMenu(nomeUsuario):
 # Executável
 
 while True:
-    try:
-        os.system("clear")
-        print("Bem vindo! Digite seu login e senha para continuar\n")
-        login = input("Login: ")
-        senha = int(input("Senha: "))
+    os.system("clear")
+    print("Bem vindo! Digite seu login e senha para continuar\n")
+    login = input("Login: ")
+    senha = int(input("Senha: "))
 
-        checkUsuario = validarUsuario(login, senha)
-        if checkUsuario != None and checkUsuario["Admin?"] != True:
-            sistemaMenu(checkUsuario["Nome"])
-        elif checkUsuario != None and checkUsuario["Admin?"] == True:
-            adminMenu(checkUsuario["Nome"])
-        else:
-            break
-    except:
-        os.system("clear")
-        print("-- Login e/ou senha inválidos --")
+    checkUsuario = validarUsuario(login, senha)
+    if checkUsuario != None and checkUsuario["Admin?"] != True:
+        sistemaMenu(checkUsuario["Nome"])
+    elif checkUsuario != None and checkUsuario["Admin?"] == True:
+        adminMenu(checkUsuario["Nome"])
+    else:
+        time.sleep(1)
